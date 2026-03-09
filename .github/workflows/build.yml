@@ -14,36 +14,26 @@ jobs:
           version: '5.15.2'
           arch: 'win64_mingw81'
 
-      - name: Create MPV Fake Headers
+      - name: Create MPV Stub
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path "src/include/mpv" -Force
-          # Создаем минимальный рабочий client.h, чтобы компилятор не ругался
-          $client_h = '
-          #ifndef MPV_CLIENT_H_
-          #define MPV_CLIENT_H_
-          #include <stddef.h>
-          #include <stdint.h>
-          extern "C" {
-              typedef struct mpv_handle mpv_handle;
-              typedef enum { MPV_FORMAT_NONE = 0 } mpv_format;
-              mpv_handle *mpv_create(void);
-              int mpv_initialize(mpv_handle *ctx);
-              void mpv_terminate_destroy(mpv_handle *ctx);
-              int mpv_set_option_string(mpv_handle *ctx, const char *name, const char *data);
-          }
-          #endif'
-          $client_h | Out-File -FilePath "src/include/mpv/client.h" -Encoding UTF8
-          
-          # Создаем пустой qthelper.hpp
-          "#ifndef MPV_QTHELPER_HPP_`n#define MPV_QTHELPER_HPP_`n#endif" | Out-File -FilePath "src/include/mpv/qthelper.hpp" -Encoding UTF8
-          Write-Host "Headers created locally!"
+          # Создаем файл-заглушку, чтобы компилятор не ругался
+          $h = '#ifndef MPV_CLIENT_H_`n#define MPV_CLIENT_H_`ntypedef struct mpv_handle mpv_handle;`n#endif'
+          $h | Out-File -FilePath "src/include/mpv/client.h" -Encoding UTF8
+          "" | Out-File -FilePath "src/include/mpv/qthelper.hpp" -Encoding UTF8
 
       - name: Build project
         shell: pwsh
         run: |
           if (Test-Path "src/Baka-MPlayer.pro") { cd src }
-          qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
+          # ВНИМАНИЕ: Мы подменяем параметры прямо в командной строке
+          qmake Baka-MPlayer.pro `
+            "CONFIG+=no_pkg_config" `
+            "INCLUDEPATH+=include" `
+            "LIBS+=-L." `
+            "DEFINES+=NODEV"
+          
           mingw32-make -j2
 
       - name: Prepare Artifacts
