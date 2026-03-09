@@ -32,8 +32,6 @@ unix:!macx {
     SOURCES += platform/linux.cpp
 }
 
-PKGCONFIG += mpv
-
 win32 {
     QT += winextras
     PKGCONFIG += libzip
