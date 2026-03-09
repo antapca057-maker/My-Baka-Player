@@ -17,19 +17,18 @@ jobs:
       - name: Download MPV Dev
         shell: pwsh
         run: |
-          # Скачиваем заголовки mpv, чтобы проект "видел" библиотеку
           $url = "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip"
           Invoke-WebRequest -Uri $url -OutFile "mpv.zip"
           Expand-Archive "mpv.zip" -DestinationPath "mpv_tmp"
-          New-Item -ItemType Directory -Path "src/include/mpv" -Force
-          Copy-Item "mpv_tmp/*/libmpv/client.h" "src/include/mpv/"
-          Copy-Item "mpv_tmp/*/libmpv/qthelper.hpp" "src/include/mpv/"
+          # Создаем папку include, чтобы qmake её видел
+          New-Item -ItemType Directory -Path "include/mpv" -Force
+          Copy-Item "mpv_tmp/*/libmpv/client.h" "include/mpv/"
+          Copy-Item "mpv_tmp/*/libmpv/qthelper.hpp" "include/mpv/"
 
       - name: Build project
         shell: pwsh
         run: |
-          cd src
-          # Принудительно говорим qmake, где искать mpv и игнорировать проверку пакета
+          # Теперь всё в одной папке, qmake сразу увидит файл
           qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
           mingw32-make
           
