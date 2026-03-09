@@ -14,27 +14,33 @@ jobs:
           version: '5.15.2'
           arch: 'win64_mingw81'
 
-      - name: Setup MPV Headers
+      - name: Setup MPV (Headers + Libs)
         shell: pwsh
         run: |
-          # Скачиваем заголовки mpv прямо в папку src
-          Invoke-WebRequest -Uri "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip" -OutFile "mpv.zip"
-          Expand-Archive "mpv.zip" -DestinationPath "mpv_tmp"
           New-Item -ItemType Directory -Path "src/include/mpv" -Force
-          $header = Get-ChildItem -Path "mpv_tmp" -Filter "client.h" -Recurse | Select-Object -First 1
-          Copy-Item $header.FullName "src/include/mpv/"
-          Write-Host "MPV Headers Ready in src/include/mpv"
+          $baseUrl = "https://raw.githubusercontent.com/mpv-player/mpv/master/libmpv"
+          # Скачиваем заголовки (чертежи)
+          Invoke-WebRequest -Uri "$baseUrl/client.h" -OutFile "src/include/mpv/client.h"
+          Invoke-WebRequest -Uri "$baseUrl/qthelper.hpp" -OutFile "src/include/mpv/qthelper.hpp"
+          Write-Host "Headers downloaded."
 
       - name: Build project
         shell: pwsh
         run: |
-          cd src
-          # Запускаем сборку из папки src, где теперь лежит .pro файл
+          if (Test-Path "src/Baka-MPlayer.pro") { cd src }
           qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
           mingw32-make -j2
+
+      - name: Prepare Artifacts
+        shell: pwsh
+        run: |
+          # Создаем папку для готового плеера
+          New-Item -ItemType Directory -Path "Dist" -Force
+          Get-ChildItem -Path "**/release/*.exe" -Recurse | Copy-Item -Destination "Dist/"
+          Write-Host "EXE moved to Dist folder"
 
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
-          name: Baka-MPlayer-Exe
-          path: "src/release/*.exe"
+          name: Baka-MPlayer-Build
+          path: Dist/
