@@ -14,26 +14,27 @@ jobs:
           version: '5.15.2'
           arch: 'win64_mingw81'
 
-      - name: Download MPV Dev
+      - name: Setup MPV Headers
         shell: pwsh
         run: |
-          $url = "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip"
-          Invoke-WebRequest -Uri $url -OutFile "mpv.zip"
+          # Скачиваем заголовки mpv прямо в папку src
+          Invoke-WebRequest -Uri "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip" -OutFile "mpv.zip"
           Expand-Archive "mpv.zip" -DestinationPath "mpv_tmp"
-          # Создаем папку include в корне
-          New-Item -ItemType Directory -Path "include/mpv" -Force
-          Copy-Item "mpv_tmp/*/libmpv/client.h" "include/mpv/"
-          Copy-Item "mpv_tmp/*/libmpv/qthelper.hpp" "include/mpv/"
+          New-Item -ItemType Directory -Path "src/include/mpv" -Force
+          $header = Get-ChildItem -Path "mpv_tmp" -Filter "client.h" -Recurse | Select-Object -First 1
+          Copy-Item $header.FullName "src/include/mpv/"
+          Write-Host "MPV Headers Ready in src/include/mpv"
 
       - name: Build project
         shell: pwsh
         run: |
-          # Собираем файл из корня, указывая путь к заголовкам mpv
+          cd src
+          # Запускаем сборку из папки src, где теперь лежит .pro файл
           qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
-          mingw32-make
-          
+          mingw32-make -j2
+
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
           name: Baka-MPlayer-Exe
-          path: "**/release/*.exe"
+          path: "src/release/*.exe"
