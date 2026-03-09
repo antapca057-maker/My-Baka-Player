@@ -20,7 +20,7 @@ jobs:
           $url = "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip"
           Invoke-WebRequest -Uri $url -OutFile "mpv.zip"
           Expand-Archive "mpv.zip" -DestinationPath "mpv_tmp"
-          # Создаем папку include, чтобы qmake её видел
+          # Создаем папку include в корне
           New-Item -ItemType Directory -Path "include/mpv" -Force
           Copy-Item "mpv_tmp/*/libmpv/client.h" "include/mpv/"
           Copy-Item "mpv_tmp/*/libmpv/qthelper.hpp" "include/mpv/"
@@ -28,7 +28,7 @@ jobs:
       - name: Build project
         shell: pwsh
         run: |
-          # Теперь всё в одной папке, qmake сразу увидит файл
+          # Собираем файл из корня, указывая путь к заголовкам mpv
           qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
           mingw32-make
           
