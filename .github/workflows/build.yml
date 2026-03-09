@@ -17,9 +17,8 @@ jobs:
       - name: Build project
         shell: pwsh
         run: |
-          $pro = Get-ChildItem -Filter "Baka-MPlayer.pro" -Recurse | Select-Object -First 1
-          if (!$pro) { throw "Файл .pro не найден в репозитории!" }
-          cd $pro.Directory.FullName
+          # Переходим в папку src, где лежит наш проект
+          cd src
           qmake Baka-MPlayer.pro
           mingw32-make
 
@@ -28,5 +27,3 @@ jobs:
         with:
           name: Baka-MPlayer-Exe
           path: "**/release/*.exe"
-          name: Baka-MPlayer-Exe
-          path: release/*.exe
