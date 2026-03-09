@@ -14,14 +14,25 @@ jobs:
           version: '5.15.2'
           arch: 'win64_mingw81'
 
+      - name: Download MPV Dev
+        shell: pwsh
+        run: |
+          # Скачиваем заголовки mpv, чтобы проект "видел" библиотеку
+          $url = "https://github.com/mpv-player/mpv-build/archive/refs/heads/master.zip"
+          Invoke-WebRequest -Uri $url -OutFile "mpv.zip"
+          Expand-Archive "mpv.zip" -DestinationPath "mpv_tmp"
+          New-Item -ItemType Directory -Path "src/include/mpv" -Force
+          Copy-Item "mpv_tmp/*/libmpv/client.h" "src/include/mpv/"
+          Copy-Item "mpv_tmp/*/libmpv/qthelper.hpp" "src/include/mpv/"
+
       - name: Build project
         shell: pwsh
         run: |
-          # Переходим в папку src, где лежит наш проект
           cd src
-          qmake Baka-MPlayer.pro
+          # Принудительно говорим qmake, где искать mpv и игнорировать проверку пакета
+          qmake Baka-MPlayer.pro INCLUDEPATH+=include "CONFIG+=no_pkg_config"
           mingw32-make
-
+          
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
