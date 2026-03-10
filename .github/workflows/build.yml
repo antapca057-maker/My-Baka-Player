@@ -17,33 +17,25 @@ jobs:
       - name: Create MPV Stub
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path "src/include/mpv" -Force
-          # Создаем файл-заглушку, чтобы компилятор не ругался
+          # Создаем папку в корне
+          New-Item -ItemType Directory -Path "include/mpv" -Force
           $h = '#ifndef MPV_CLIENT_H_`n#define MPV_CLIENT_H_`ntypedef struct mpv_handle mpv_handle;`n#endif'
-          $h | Out-File -FilePath "src/include/mpv/client.h" -Encoding UTF8
-          "" | Out-File -FilePath "src/include/mpv/qthelper.hpp" -Encoding UTF8
+          $h | Out-File -FilePath "include/mpv/client.h" -Encoding UTF8
+          "" | Out-File -FilePath "include/mpv/qthelper.hpp" -Encoding UTF8
 
       - name: Build project
         shell: pwsh
         run: |
-          if (Test-Path "src/Baka-MPlayer.pro") { cd src }
-          # ВНИМАНИЕ: Мы подменяем параметры прямо в командной строке
-          qmake Baka-MPlayer.pro `
-            "CONFIG+=no_pkg_config" `
-            "INCLUDEPATH+=include" `
-            "LIBS+=-L." `
-            "DEFINES+=NODEV"
+          # Ищем файл .pro и заходим к нему
+          $pro = Get-ChildItem -Filter "Baka-MPlayer.pro" -Recurse | Select-Object -First 1
+          cd $pro.Directory.FullName
           
+          # Запускаем сборку, насильно указывая путь к нашим заглушкам
+          qmake Baka-MPlayer.pro "INCLUDEPATH+=../include" "CONFIG+=no_pkg_config"
           mingw32-make -j2
 
-      - name: Prepare Artifacts
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path "Dist" -Force
-          Get-ChildItem -Path "**/release/*.exe" -Recurse | Copy-Item -Destination "Dist/"
-          
-      - name: Upload result
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: Baka-MPlayer-Build
-          path: Dist/
+          path: "**/release/*.exe"
